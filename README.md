@@ -21,7 +21,7 @@ Built as a learning project focused on **clean architecture**, **separation of c
 ### From source
 
 ```bash
-git clone https://github.com/<your-username>/todo-cli.git
+git clone https://github.com/SPCDIAZRIVERACHRISTIAN/todo-cli.git
 cd todo-cli
 cargo install --path .
 ```
