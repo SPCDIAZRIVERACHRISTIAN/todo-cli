@@ -1,57 +1,20 @@
-use std::fmt;
-use std::fs::OpenOptions;
+use std::error::Error;
+use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Write};
+use std::path::Path;
 
-struct Task {
-    id: u32,
-    title: String,
-    done: bool,
-}
-
-struct IdGenerator {
-    next_id: u32,
-}
-
-impl IdGenerator {
-    fn new() -> Self {
-        IdGenerator { next_id: 1 }
-    }
-
-    fn next(&mut self) -> u32 {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
+pub fn mark_done(tasks: &mut [Task], id: u32) {
+    match tasks.iter_mut().find(|t| t.id == id) {
+        Some(task) => task.done = true,
+        None => println!("task not found"),
     }
 }
 
-impl Task {
-    fn new(generator: &mut IdGenerator, title: &str) -> Task {
-        Task {
-            id: generator.next(),
-            title: title.to_string(),
-            done: false,
-        }
-    }
-
-    fn to_line(&self) -> String {
-        format!("{} {} {}", self.id, self.title, self.done)
-    }
-}
-
-pub fn mark_done(tasks: &mut [Task], id: u32) -> bool {
-    for task in tasks {
-        if task.id == id {
-            task.done = true;
-            return true;
-        }
-    }
-    false
-}
-
-pub fn delete_task(tasks: &mut Vec<Task>, id: u32) -> bool {
+pub fn delete_task(tasks: &mut Vec<Task>, id: u32) -> io::Result<()> {
     let len_before = tasks.len();
     tasks.retain(|task| task.id != id);
-    len_before != tasks.len()
+    len_before != tasks.len();
+    Ok(())
 }
 
 pub fn load_tasks(path: &str) -> io::Result<Vec<Task>> {
@@ -70,8 +33,8 @@ pub fn load_tasks(path: &str) -> io::Result<Vec<Task>> {
         if parts.len() < 3 {
             continue;
         }
-
-        let id: u32 = parts[0].parse().unwrap_or(0);
+        //id should not default to 0 it should stop process if data read is not correctly
+        let id: u32 = parts[0].parse().unwrap_or(0); //TODO make this be a panic! or error
         let done: bool = parts.last().unwrap() == &"true";
 
         let title = parts[1..parts.len() - 1].join(" ");
@@ -83,7 +46,7 @@ pub fn load_tasks(path: &str) -> io::Result<Vec<Task>> {
 }
 
 pub fn save_tasks(path: &str, tasks: &[Task]) -> io::Result<()> {
-    let mut file = File::create(path)?;
+    let mut file = OpenOptions::new().create(true).append(true).open(path)?;
 
     for task in tasks {
         writeln!(file, "{} {} {}", task.id, task.title, task.done)?;
@@ -92,13 +55,10 @@ pub fn save_tasks(path: &str, tasks: &[Task]) -> io::Result<()> {
     Ok(())
 }
 
-fn add(file_path: &str, content: Task) -> std::io::Result<()> {
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(file_path)?;
+fn add(tasks: &mut Vec<Task>, title: &str, generator: &mut IdGenerator) -> std::io::Result<()> {
+    let added = Task::new(generator, title);
 
-    writeln!(&mut file, "{}", content.to_line())?;
+    tasks.push(added);
 
     Ok(())
 }
@@ -113,14 +73,54 @@ fn list(file: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn main() -> std::io::Result<()> {
-    let mut generator = IdGenerator::new();
+fn list_state(tasks: &[Task]) -> std::io::Result<()> {
+    for task in tasks {
+        match task.done {
+            true => println!("{} [X]", task.title),
+            false => println!("{} []", task.title),
+        }
+    }
+    Ok(())
+}
 
-    add("test.txt", Task::new(&mut generator, "Take a bath"))?;
-    add("test.txt", Task::new(&mut generator, "eat"))?;
-    add("test.txt", Task::new(&mut generator, "sleep"))?;
+fn tasks_state(file: &str) -> std::io::Result<Vec<Task>> {
+    let path = Path::new(&file);
+    let mut tasks: Vec<Task> = Vec::new();
+
+    match path.exists() {
+        true => {
+            list(&file)?;
+            tasks.extend(load_tasks(&file)?);
+            Ok(tasks)
+        }
+        false => Ok(tasks),
+    }
+}
+
+fn main() -> std::io::Result<()> {
+    let file = "test2.txt";
+    let mut generator = IdGenerator::new();
+    let mut tasks: Vec<Task> = tasks_state(&file)?;
+
+    add(&mut tasks, "Take a bath", &mut generator)?;
+    add(&mut tasks, "eat", &mut generator)?;
+    add(&mut tasks, "sleep", &mut generator)?;
+    println!("added tasks bro!");
+
+    list_state(&tasks)?;
+
+    println!("marking done 1 & 3");
+    mark_done(&mut tasks, 3);
+    mark_done(&mut tasks, 1);
+
+    println!("deleting number 2...");
+    delete_task(&mut tasks, 2)?;
+
     println!("file made and wrote shit to it!");
+    save_tasks(&file, &mut tasks);
+
     println!("This is the list working just fine");
-    list("test.txt")?;
+    list(&file)?;
+
     Ok(())
 }

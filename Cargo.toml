@@ -1,6 +1,8 @@
 [package]
-name = "todo-cli"
+name = "todo"
 version = "0.1.0"
+authors = ["Christian Díaz Rivera <christianda3@gmail.com>"]
+description = "A simple CLI todo app written in Rust"
 edition = "2024"
 
 [dependencies]

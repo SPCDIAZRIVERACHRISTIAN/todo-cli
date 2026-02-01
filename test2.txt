@@ -1,0 +1,14 @@
+1 Take a bath true
+3 sleep true
+1 Take a bath true
+3 sleep true
+1 Take a bath true
+3 sleep true
+1 Take a bath true
+3 sleep true
+1 Take a bath true
+3 sleep true
+1 Take a bath true
+3 sleep true
+1 Take a bath false
+3 sleep false
