@@ -1,27 +1,24 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser, Subcommand};
+use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about)]
 pub struct Cli {
+    #[arg(short, long)]
+    pub file: Option<PathBuf>,
     /// Which command to run
     #[command(subcommand)]
     pub command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Mark task as done eg. todo done 2
-    done(Mark_done),
+    Done { id: u32 },
     /// Delete task specified eg. todo delete 1
-    delete(Delete_task),
-    /// Save tasks in to file eg. todo save
-    save(Save_tasks),
+    Delete { id: u32 },
     /// Add task to list eg. todo add "task"
-    add(Add),
+    Add { title: String },
     /// List all tasks in memory eg. todo list
-    list {
-        /// list tasks from file instead of memory eg. todo list -f
-        #[arg(short = 'f', long = "file")]
-        file: bool,
-    },
+    List,
 }
